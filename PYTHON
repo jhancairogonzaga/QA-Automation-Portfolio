@@ -1,0 +1,251 @@
+import random
+from datetime import datetime
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException, TimeoutException, StaleElementReferenceException, ElementNotInteractableException
+from selenium.webdriver.chrome.options import Options
+from datetime import datetime
+import time
+from idlelib.idle_test.test_configdialog import root
+
+
+def find_and_click_learn_more_below_100(driver):
+
+    try:
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "item-area"))
+        )
+
+        product_containers = driver.find_elements(By.CLASS_NAME, "item-area")
+
+        target_products = [
+            container for container in product_containers if price_below_100(container)
+        ]
+
+        if target_products:
+            first_cheap_product = target_products[0]
+            details_button = first_cheap_product.find_element(By.XPATH, "//button[@class='button' and contains(text(),'Details')]")
+
+            details_button.click()
+            return True
+        else:
+            print("No products below $100 found.")
+            return False
+
+    except (NoSuchElementException, TimeoutException, StaleElementReferenceException) as e:
+        print(f"Error finding or clicking product: {e}")
+        return False
+
+
+def price_below_100(product_container):
+
+    try:
+    
+        price_element = product_container.find_element(By.CLASS_NAME, "price")
+
+        price_text = price_element.text.strip()
+        if price_text.startswith("</span>"):  
+            price_text = price_text[7:]  
+        price_value = float(price_text.strip("$"))  
+
+        # Return True if price is below $100
+        return price_value < 50
+    
+    except NoSuchElementException:
+        
+        print("Price element not found for product.")
+        return False
+
+def capture_full_page_screenshot(driver, screenshot_path):
+    web_page_height = driver.execute_script("""
+        return Math.max(
+            document.body.scrollHeight,
+            document.body.offsetHeight,
+            document.documentElement.clientHeight,
+            document.documentElement.scrollHeight,
+            document.documentElement.offsetHeight
+        );
+    """)
+    driver.set_window_size(1366, web_page_height)
+    whole_page = driver.find_element(By.TAG_NAME, "body")
+    whole_page.screenshot(screenshot_path)
+
+
+def main():
+    # Replace with your browser driver setup (if different from Chrome)
+    options = Options()
+    options.add_argument("--disable-extensions")
+    options.add_argument("--start-maximized")
+    driver = webdriver.Chrome(options=options)
+
+    driver.implicitly_wait(30)
+    WebDriverWait(driver, timeout=100)
+    
+    SITE = "https://amp.vipdevbox.com/"
+
+    try:
+
+############## HOMEPAGE ##############        
+        
+        driver.get(SITE)
+        print(f"Title Page : {driver.title} = URL: {driver.current_url}\n")
+
+############## LOGIN PAGE ##############
+
+        driver.find_element(By.XPATH, "//a[text()='Log In']").click()
+        
+        #FILL UP
+        driver.find_element(By.XPATH, "//input[@id='email']").send_keys("uat@growth-rocket.com")
+        driver.find_element(By.XPATH, "//input[@id='pass']").send_keys("Qwerty12345")
+        driver.find_element(By.XPATH, "//button[@title='Login']").click()
+    
+        time.sleep(2)
+        driver.find_element(By.XPATH, "//a[@class='prpop-close-btn']").click()
+        
+        print(f"Title Page : {driver.title} = URL: {driver.current_url}\n")         
+        
+        #CLICKING CATEGORY            
+        interior_accessories_locator = By.XPATH, "//a[text()='Interior Accessories']"
+        ash_cap_locator = By.XPATH, "//a[text()='Ash Cup']"
+        driver.find_element(*interior_accessories_locator).click()
+        driver.find_element(*ash_cap_locator).click()
+
+############## PLP PAGE ##############
+
+        if find_and_click_learn_more_below_100(driver):
+            print("Clicked on 'Learn More' for a product below $100.\n")
+        else:
+            print("Automation completed without clicking any product.")
+
+############## PDP PAGE ##############
+
+        print(f"Title Page : {driver.title} = URL: {driver.current_url}\n")
+        driver.find_element(By.XPATH, "//span[text()='Add to Cart']").click()
+        
+############## CART PAGE ##############
+
+        # NAVIGATION CART CHECKOUT BUTTON
+        #driver.find_element(By.XPATH, "//a[@class='mybag-link']").click()
+        #driver.find_element(By.XPATH, "//a[@class='btn btn-default']").click()
+        
+        print(f"Title Page : {driver.title} = URL: {driver.current_url}\n")
+        driver.find_element(By.XPATH, "//div[@class='totals']//div//ul[@class='checkout-types']//li//button[@title='Proceed to Checkout']//span//span[contains(text(),'Proceed to Checkout')]").click()
+        
+        
+############## CHECKOUT PAGE ##############
+        
+        print(f"Title Page : {driver.title} = URL: {driver.current_url}\n")
+        
+        #COUPON
+        time.sleep(5)
+        driver.find_element(By.XPATH, "//input[@id='discount_block_toggle']").click()
+        time.sleep(2)
+        driver.find_element(By.XPATH, "//input[@id='coupon-code']").send_keys("QAZXSWEDCQATEST")
+        time.sleep(2)
+        driver.find_element(By.XPATH, "//button[@id='coupon-apply']").click()
+        
+        ### PLACE ORDER BUTTON 
+        
+        time.sleep(2)
+        driver.find_element(By.XPATH, "//textarea[@id='order-notes']").send_keys("QATEST QATEST QATEST QATEST")
+        
+        driver.find_element(By.XPATH, "//button[@title='Proceed to Payment']").click()
+        time.sleep(10)
+        
+        
+        
+        #capture_full_page_screenshot(driver, "C:\\AUTOMATION SS\\LFP AUTOMATION SS\\CHECKOUT-FILLED OUT_PAGE_SS.png")
+        
+############## STRIPE PAYMENT ##############
+        
+        wait = WebDriverWait(driver, 15)  
+        
+        email_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@id='email']")))
+        email_input.send_keys("uat@growth-rocket.com")
+        
+        card_number_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@id='cardNumber']")))
+        card_number_input.send_keys("4242 4242 4242 4242")
+        
+        card_expiry_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@id='cardExpiry']")))
+        card_expiry_input.send_keys("12/24")
+        
+        card_cvc_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@id='cardCvc']")))
+        card_cvc_input.send_keys("123")
+        
+        billing_name_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@id='billingName']")))
+        billing_name_input.send_keys("GRTEST TESTGR")
+        
+        billing_country_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//select[@id='billingCountry']")))
+        billing_country_input_options = billing_country_input.find_elements(By.TAG_NAME, "option")
+        
+        for option in billing_country_input_options :
+            if option.text == "United States":
+                option.click()
+                break
+        
+        billing_postal_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@id='billingPostalCode']")))
+        billing_postal_input.send_keys("11758")
+        
+        
+        # Stripe Submit Button #########################################
+        
+        wait = WebDriverWait(driver, 10)
+        
+        element_locator = (By.XPATH, "//div[@class='SubmitButton-CheckmarkIcon']")
+        payment_button = wait.until(EC.element_to_be_clickable(element_locator))
+        
+        num_clicks = 3
+        for _ in range(num_clicks):
+            driver.execute_script("arguments[0].click();", payment_button)
+            
+        print(f"Title Page : {driver.title} = URL: {driver.current_url}\n")
+        
+############## THANK YOU PAGE ##############
+        
+        try:
+            close_button = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.XPATH, "//a[@class='prpop-close-btn']")))
+            try:
+                close_button.click()
+            except ElementNotInteractableException:
+                pass  
+        
+        except (NoSuchElementException, TimeoutException):
+            pass
+        
+        thankyou_message_locator = (By.XPATH, "//h1[contains(.,'Thank you')]")
+        wait = WebDriverWait(driver, 10)
+        wait.until(EC.visibility_of_element_located(thankyou_message_locator))
+        print(f"Title Page : {driver.title} = URL: {driver.current_url}\n")
+        
+        order_number_element = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//span[@class='order-number']"))
+        )
+        order_number = order_number_element.text
+        print(f"Order Number: {order_number}")
+        
+        grand_total_element = WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located((By.XPATH, "//tr[@class='grand_total']//span[@class='price']"))
+        )
+        grand_total = grand_total_element.text
+
+        print(f"Grand Total: {grand_total}\n")
+        
+        
+        #capture_full_page_screenshot(driver, "C:\\AUTOMATION SS\\LFP AUTOMATION SS\\THANKYOU_PAGE_SS.png")
+        
+        time.sleep(10)
+    
+    finally:
+        
+        driver.quit()
+
+
+if __name__ == "__main__":
+    start_time = datetime.now()
+    main()
+    end_time = datetime.now()
+    runtime = (end_time - start_time).total_seconds()
+    print(f"Total runtime: {runtime:.2f} seconds")
