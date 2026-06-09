@@ -12,6 +12,10 @@ import time
 from idlelib.idle_test.test_configdialog import root
 
 
+
+
+
+
 def find_and_click_learn_more_below_100(driver):
 
     try:
